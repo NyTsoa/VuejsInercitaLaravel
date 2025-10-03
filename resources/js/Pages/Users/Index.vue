@@ -4,6 +4,8 @@ import {useForm, Link} from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import Modal from '@/Components/Modal.vue'
 
+const notification = ref('')
+
 defineProps({
     users: Array,
 })
@@ -18,12 +20,14 @@ const createForm = useForm({
     email: '',
     password: '',
     password_confirmation: '',
+    role: 1
 })
 
 const editForm = useForm({
     id: null,
     name: '',
     email: '',
+    role: 1,
 })
 
 
@@ -32,6 +36,7 @@ function openEdit(user) {
     editForm.id = user.id
     editForm.name = user.name
     editForm.email = user.email
+    editForm.role = user.role
     showEditModal.value = true
 }
 
@@ -41,17 +46,34 @@ function submitCreate() {
         onSuccess: () => {
             showCreateModal.value = false
             createForm.reset()
+            notification.value = 'Utilisateur créé avec succès !'
+            setTimeout(() => notification.value = '', 3000)
         },
     })
 }
+
 
 function submitEdit() {
     editForm.put(route('users.update', editForm.id), {
         onSuccess: () => {
             showEditModal.value = false
+            notification.value = 'Mise a jour avec succès !'
         },
     })
 }
+
+function deleteUser(user) {
+    if (!confirm(`Voulez-vous vraiment supprimer ${user.name} ?`)) return;
+
+    const form = useForm()
+    form.delete(route('users.destroy', user.id), {
+        onSuccess: () => {
+            notification.value = `Utilisateur ${user.name} supprimé avec succès !`
+            setTimeout(() => notification.value = '', 3000)
+        },
+    })
+}
+
 </script>
 
 <template>
@@ -62,6 +84,9 @@ function submitEdit() {
                 Listes utilisateur
             </h2>
         </template>
+        <div v-if="notification" class="mb-4 p-2 bg-green-100 text-green-800 rounded">
+            {{ notification }}
+        </div>
 
         <div class="py-12">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
@@ -90,10 +115,10 @@ function submitEdit() {
                                         <i class="fas fa-edit"></i>
                                     </button>
 
-                                    <Link :href="route('users.destroy', user.id)" method="delete" as="button"
-                                          class="text-red-500 ml-2">
+                                    <button @click="deleteUser(user)" class="text-red-500 ml-2">
                                         <i class="fa-solid fa-trash"></i>
-                                    </Link>
+                                    </button>
+
                                 </td>
                             </tr>
                             </tbody>
@@ -108,7 +133,7 @@ function submitEdit() {
             <template #title>Créer un utilisateur</template>
 
             <form @submit.prevent="submitCreate" class="space-y-4">
-                <!-- Nom -->
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nom</label>
                     <input
@@ -122,7 +147,6 @@ function submitEdit() {
                     </div>
                 </div>
 
-                <!-- Email -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                     <input
@@ -136,7 +160,6 @@ function submitEdit() {
                     </div>
                 </div>
 
-                <!-- Mot de passe -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
                     <input
@@ -150,7 +173,6 @@ function submitEdit() {
                     </div>
                 </div>
 
-                <!-- Confirmation mot de passe -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Confirmation mot de passe</label>
                     <input
@@ -160,23 +182,33 @@ function submitEdit() {
                         class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     />
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
+                    <select
+                        v-model="createForm.role"
+                        class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    >
+                        <option :value="0">Admin</option>
+                        <option :value="1">Client</option>
+                    </select>
+                </div>
 
-                <!-- Bouton -->
                 <button
                     type="submit"
-                    class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition"
+                    :disabled="createForm.processing"
+                    class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <i class="fa-solid fa-floppy-disk"></i> Sauvegarder
                 </button>
+
             </form>
         </Modal>
 
-        <!-- MODAL EDIT -->
         <Modal :show="showEditModal" @close="showEditModal = false">
             <template #title>Modifier utilisateur</template>
 
             <form @submit.prevent="submitEdit" class="space-y-4">
-                <!-- Nom -->
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nom</label>
                     <input
@@ -189,7 +221,7 @@ function submitEdit() {
                     </div>
                 </div>
 
-                <!-- Email -->
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                     <input
@@ -202,12 +234,12 @@ function submitEdit() {
                     </div>
                 </div>
 
-                <!-- Bouton -->
+
                 <button
                     type="submit"
                     class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition"
                 >
-                    <i class="fa-solid fa-pen-to-square"></i> Mettre à jour
+                    <i class="fa-solid fa-pen-to-square"></i> Mettre a jour
                 </button>
             </form>
         </Modal>

@@ -10,7 +10,8 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users = User::all();
+
+        $users = User::where('id', '<>', auth()->id())->get();
 
         return Inertia::render('Users/Index', [
             'users' => $users,
@@ -28,12 +29,14 @@ class UserController extends Controller
             'name' => 'required|string',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6|confirmed',
+            'role' => 'required|in:0,1',
         ]);
 
         User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
+             'role' => $request->role ?? 1,
         ]);
 
         return redirect()->route('users.index');
@@ -53,7 +56,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,' . $user->id,
         ]);
 
-        $user->update($request->only('name', 'email'));
+        $user->update($request->only('name', 'email', 'role'));
 
         return redirect()->route('users.index');
     }
